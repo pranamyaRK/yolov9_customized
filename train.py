@@ -122,8 +122,9 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
         # Check if the module is a Conv2d layer (pruning is often done on convolutional layers)
         if isinstance(module, torch.nn.Conv2d):
             # Apply unstructured pruning (you can use structured pruning too)
-            prune.l1_unstructured(module, name='weight', amount=0.1)  # Prune 10% of the weights
+            prune.l1_unstructured(module, name='weight', amount=0.05)  # Prune 10% of the weights
             prune.remove(module, 'weight')  # To make pruning permanent and remove the mask
+            LOGGER.info(f'pruning by 5%')
 
     # Freeze
     freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # layers to freeze
@@ -159,7 +160,8 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     else:
         lf = lambda x: (1 - x / epochs) * (1.0 - hyp['lrf']) + hyp['lrf']  # linear
 
-    scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
+    scheduler = lr_scheduler.CosineAnnealingLR(optimizer, T_max=10)
+    # scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lf)
     # from utils.plots import plot_lr_scheduler; plot_lr_scheduler(optimizer, scheduler, epochs)
 
     # EMA
