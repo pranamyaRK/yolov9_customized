@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:
 ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 import val as validate  # for end-of-epoch mAP
+import torch.nn.utils.prune as prune
 from models.experimental import attempt_load
 from models.yolo import Model
 from utils.autoanchor import check_anchors
@@ -115,6 +116,14 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     else:
         model = Model(cfg, ch=3, nc=nc, anchors=hyp.get('anchors')).to(device)  # create
     amp = check_amp(model)  # check AMP
+
+     # Apply pruning here
+    for name, module in model.named_modules():
+        # Check if the module is a Conv2d layer (pruning is often done on convolutional layers)
+        if isinstance(module, torch.nn.Conv2d):
+            # Apply unstructured pruning (you can use structured pruning too)
+            prune.l1_unstructured(module, name='weight', amount=0.1)  # Prune 10% of the weights
+            prune.remove(module, 'weight')  # To make pruning permanent and remove the mask
 
     # Freeze
     freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # layers to freeze
