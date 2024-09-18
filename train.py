@@ -118,13 +118,19 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     amp = check_amp(model)  # check AMP
 
      # Apply pruning here
-    for name, module in model.named_modules():
-        # Check if the module is a Conv2d layer (pruning is often done on convolutional layers)
-        if isinstance(module, torch.nn.Conv2d):
-            # Apply unstructured pruning (you can use structured pruning too)
-            prune.l1_unstructured(module, name='weight', amount=0.2)  # Prune 5% of the weights
-            prune.remove(module, 'weight')  # To make pruning permanent and remove the mask
+    # for name, module in model.named_modules():
+    #     # Check if the module is a Conv2d layer (pruning is often done on convolutional layers)
+    #     if isinstance(module, torch.nn.Conv2d):
+    #         # Apply unstructured pruning (you can use structured pruning too)
+    #         prune.l1_unstructured(module, name='weight', amount=0.)  # Prune 5% of the weights
+    #         prune.remove(module, 'weight')  # To make pruning permanent and remove the mask
             #LOGGER.info(f'pruning by 20%')
+    
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            # Prune entire channels in a structured way (e.g., L1 norm of filters, 10%)
+            prune.ln_structured(module, name='weight', amount=0.1, n=2, dim=0)
+            prune.remove(module, 'weight')
 
     # Freeze
     freeze = [f'model.{x}.' for x in (freeze if len(freeze) > 1 else range(freeze[0]))]  # layers to freeze
