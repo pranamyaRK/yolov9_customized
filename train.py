@@ -48,17 +48,6 @@ RANK = int(os.getenv('RANK', -1))
 WORLD_SIZE = int(os.getenv('WORLD_SIZE', 1))
 GIT_INFO = None
 
-def prune_layer(layer, amount=0.2):
-    if isinstance(layer, torch.nn.Conv2d):
-        prune.ln_structured(layer, name="weight", amount=amount, n=2, dim=0)  # L1 structured pruning on Conv2d
-    elif isinstance(layer, torch.nn.Linear):
-        prune.l1_unstructured(layer, name="weight", amount=amount)  # L1 unstructured pruning on Linear
-
-def apply_layer_pruning(model, amount=0.2):
-    for name, module in model.named_modules():
-        if isinstance(module, (torch.nn.Conv2d, torch.nn.Linear)):
-            prune_layer(module, amount)
-
 def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictionary
     save_dir, epochs, batch_size, weights, single_cls, evolve, data, cfg, resume, noval, nosave, workers, freeze = \
         Path(opt.save_dir), opt.epochs, opt.batch_size, opt.weights, opt.single_cls, opt.evolve, opt.data, opt.cfg, \
@@ -136,7 +125,11 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
     #         prune.remove(module, 'weight')  # To make pruning permanent and remove the mask
             #LOGGER.info(f'pruning by 20%')
 
-    apply_layer_pruning(model, amount=0.1)
+    for name, module in model.named_modules():
+        if isinstance(module, torch.nn.Conv2d):
+            prune.ln_structured(module, name="weight", amount=0.1, n=2, dim=0)  # L1 structured pruning on Conv2d
+        elif isinstance(module, torch.nn.Linear):
+            prune.l1_unstructured(module, name="weight", amount=0.1)
     # for name, module in model.named_modules():
     #     if isinstance(module, torch.nn.Conv2d):
     #         # Prune entire channels in a structured way (e.g., L1 norm of filters, 10%)
