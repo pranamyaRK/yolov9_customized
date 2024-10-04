@@ -50,14 +50,13 @@ GIT_INFO = None
 
 def prune_layer(layer, amount=0.2):
     if isinstance(layer, torch.nn.Conv2d):
-        prune.ln_structured(layer, name="weight", amount=amount, n=1, dim=0)  # L1 structured pruning on Conv2d
+        prune.ln_structured(layer, name="weight", amount=amount, n=2, dim=0)  # L1 structured pruning on Conv2d
     elif isinstance(layer, torch.nn.Linear):
         prune.l1_unstructured(layer, name="weight", amount=amount)  # L1 unstructured pruning on Linear
 
 def apply_layer_pruning(model, amount=0.2):
     for name, module in model.named_modules():
         if isinstance(module, (torch.nn.Conv2d, torch.nn.Linear)):
-            print(f"Pruning {name}")
             prune_layer(module, amount)
 
 def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictionary
