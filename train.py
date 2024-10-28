@@ -127,13 +127,15 @@ def train(hyp, opt, device, callbacks):  # hyp is path/to/hyp.yaml or hyp dictio
 
     for name, module in model.named_modules():
         if isinstance(module, torch.nn.Conv2d):
-            prune.ln_structured(module, name="weight", amount=0.1, n=2, dim=0)
+            prune.ln_structured(module, name="weight", amount=0.2, n=2, dim=0)
             prune.remove(module, 'weight')# L1 structured pruning on Conv2d
+            LOGGER.info(f'pruning conv2d by 20%')
         if "RepNCSPELAN" in name:  # Targeting the RepNCSPELAN layers
             for sub_module in module.modules():
                 if isinstance(sub_module, torch.nn.Conv2d):
-                    prune.ln_structured(sub_module, name="weight", amount=0.05, n=2, dim=0)
+                    prune.ln_structured(sub_module, name="weight", amount=0.1, n=2, dim=0)
                     prune.remove(sub_module, 'weight')
+                    LOGGER.info(f'pruning RepNCSPELAN by 10%')
 
         # elif isinstance(module, torch.nn.Linear):
         #     prune.l1_unstructured(module, name="weight", amount=0.1)
